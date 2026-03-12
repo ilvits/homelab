@@ -1,8 +1,7 @@
-cat > .gitignore << 'EOF'
 .env
 *.env
 .env.*
 *.secret
 *.key
 *.pem
-EOF
+.DS_Store
