@@ -1,0 +1,52 @@
+# =============================================================================
+# Vikunja — менеджер задач
+# =============================================================================
+
+services:
+
+  vikunja:
+    image: vikunja/vikunja:latest
+    container_name: vikunja
+    restart: unless-stopped
+    ports:
+      - "3456:3456"
+    volumes:
+      - /mnt/user/appdata/vikunja:/app/vikunja/files
+      - /mnt/user/appdata/vikunja/config:/etc/vikunja
+    environment:
+      - TZ=Europe/Moscow
+      - VIKUNJA_DATABASE_TYPE=postgres
+      - VIKUNJA_DATABASE_HOST=vikunja-db
+      - VIKUNJA_DATABASE_PORT=5432
+      - VIKUNJA_DATABASE_USER=vikunja
+      - VIKUNJA_DATABASE_PASSWORD=${VIKUNJA_DB_PASS}
+      - VIKUNJA_DATABASE_DATABASE=vikunja
+    depends_on:
+      vikunja-db:
+        condition: service_healthy
+    networks:
+      - vikunja
+
+  vikunja-db:
+    image: postgres:16
+    container_name: vikunja-db
+    restart: unless-stopped
+    volumes:
+      - /mnt/user/appdata/postgres-vikunja:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=vikunja
+      - POSTGRES_PASSWORD=${VIKUNJA_DB_PASS}
+      - POSTGRES_DB=vikunja
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d vikunja -U vikunja"]
+      start_period: 20s
+      interval: 30s
+      retries: 5
+      timeout: 5s
+    networks:
+      - vikunja
+
+networks:
+  vikunja:
+    name: vikunja
+    driver: bridge

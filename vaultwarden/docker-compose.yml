@@ -1,0 +1,22 @@
+# =============================================================================
+# Vaultwarden — менеджер паролей
+# =============================================================================
+
+services:
+
+  vaultwarden:
+    image: vaultwarden/server:latest
+    container_name: vaultwarden
+    restart: unless-stopped
+    ports:
+      - "4743:80"
+    volumes:
+      - /mnt/user/appdata/vaultwarden:/data
+    environment:
+      - TZ=Europe/Moscow
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/alive"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s

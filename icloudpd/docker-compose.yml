@@ -1,0 +1,64 @@
+# =============================================================================
+# iCloudPD — синхронизация фото из iCloud (два аккаунта)
+# =============================================================================
+# Kate:   kateana.deem@gmail.com  → /mnt/user/photoLibraries/kate/icloud
+# Ilvits: tsoyilya@gmail.com      → /mnt/user/photoLibraries/ilvits/icloud
+#
+# После первого запуска инициализировать каждый контейнер:
+#   docker exec -it icloudpd-kate sync-icloud.sh --Initialise
+#   docker exec -it icloudpd-ilvits sync-icloud.sh --Initialise
+# =============================================================================
+
+services:
+
+  icloudpd-kate:
+    image: boredazfcuk/icloudpd
+    container_name: icloudpd-kate
+    hostname: icloudpd-kate
+    restart: unless-stopped
+    environment:
+      - TZ=Europe/Moscow
+      - user=nobody
+      - user_id=99
+      - group=users
+      - group_id=100
+      - apple_id=kateana.deem@gmail.com
+      - authentication_type=2FA
+      - synchronisation_interval=259200
+      - notification_days=7
+      - notification_title=iCloudPD Kate
+      - file_permissions=666
+      - directory_permissions=777
+    volumes:
+      - /mnt/user/appdata/icloudpd-kate:/config
+      - /mnt/user/appdata/icloudpd-kate/root:/root
+      - /mnt/user/photoLibraries/kate/icloud:/home/user/iCloud
+    healthcheck:
+      test: /usr/local/bin/healthcheck.sh
+      start_period: 30s
+
+  icloudpd-ilvits:
+    image: boredazfcuk/icloudpd
+    container_name: icloudpd-ilvits
+    hostname: icloudpd-ilvits
+    restart: unless-stopped
+    environment:
+      - TZ=Europe/Moscow
+      - user=nobody
+      - user_id=99
+      - group=users
+      - group_id=100
+      - apple_id=tsoyilya@gmail.com
+      - authentication_type=2FA
+      - synchronisation_interval=259200
+      - notification_days=7
+      - notification_title=iCloudPD Ilvits
+      - file_permissions=666
+      - directory_permissions=777
+    volumes:
+      - /mnt/user/appdata/icloudpd-ilvits:/config
+      - /mnt/user/appdata/icloudpd-ilvits/root:/root
+      - /mnt/user/photoLibraries/ilvits/icloud:/home/user/iCloud
+    healthcheck:
+      test: /usr/local/bin/healthcheck.sh
+      start_period: 30s
