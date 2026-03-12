@@ -6,7 +6,7 @@ services:
     environment:
       - POSTGRES_DB=joplin
       - POSTGRES_USER=joplin
-      - POSTGRES_PASSWORD=6b39791e90979328ded1ba5d
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - /mnt/user/appdata/joplin-server/postgres:/var/lib/postgresql/data
 
@@ -24,7 +24,7 @@ services:
       - POSTGRES_PORT=5432
       - POSTGRES_DATABASE=joplin
       - POSTGRES_USER=joplin
-      - POSTGRES_PASSWORD=6b39791e90979328ded1ba5d
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - SIGNUP_ENABLED=1
       # --- Mailer / SMTP ---
       - MAILER_ENABLED=1
@@ -32,7 +32,7 @@ services:
       - MAILER_PORT=465
       - MAILER_SECURITY=tls # tls|starttls|none
       - MAILER_AUTH_USER=admin@fairybrains.com
-      - MAILER_AUTH_PASSWORD=UiZkFkLuA9vh3TAWWYMg
+      - MAILER_AUTH_PASSWORD=${MAILER_AUTH_PASSWORD}
       - MAILER_NOREPLY_NAME=Joplin
       - MAILER_NOREPLY_EMAIL=noreply@panteleyki.com
     ports:
