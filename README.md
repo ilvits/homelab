@@ -1,6 +1,6 @@
 # 🏠 Homelab
 
-Personal homelab running on **Unraid** with 21 stacks and 39 containers, managed via Docker Compose.
+Personal homelab running on **Unraid** with 20 stacks, managed via Docker Compose.
 
 ## 🖥️ Hardware
 
@@ -34,11 +34,14 @@ compose/
 ├── media-stack/
 ├── navidrome/
 ├── npm/
-├── ntfy/
 ├── seafile/
 ├── sftpgo/
 ├── vaultwarden/
-└── vikunja/
+├── vikunja/
+└── scripts/
+    ├── check-services.sh     # Service health check (cron every 5 min)
+    ├── watchtower-check.sh   # Weekly update notifications (cron every Sunday 10:00)
+    └── setup-symlinks.sh     # Restore symlinks after reboot (Unraid User Scripts)
 ```
 
 Each stack has its own `docker-compose.yml` and `.env` file. Secrets are kept in `.env` files and excluded from version control via `.gitignore`.
@@ -68,8 +71,7 @@ Each stack has its own `docker-compose.yml` and `.env` file. Secrets are kept in
 | Stack | Description |
 |-------|-------------|
 | [beszel](./beszel/) | Lightweight server & container monitoring dashboard |
-| [ntfy](./ntfy/) | Push notification service (self-hosted) |
-| [apprise-api](./apprise-api/) | Multi-platform notification gateway |
+| [apprise-api](./apprise-api/) | Multi-platform notification gateway (Telegram, email, etc.) |
 | [duplicati](./duplicati/) | Encrypted cloud & local backups |
 | [frigate](./frigate/) | NVR with real-time object detection (Intel GPU passthrough) |
 
@@ -89,30 +91,41 @@ Each stack has its own `docker-compose.yml` and `.env` file. Secrets are kept in
 
 ### Start a stack
 ```bash
-cd /mnt/user/appdata/compose/<stack-name>
-docker compose up -d
+cs <stack-name>   # cd into stack directory
+dc up -d          # start containers
 ```
 
 ### Stop a stack
 ```bash
-docker compose down
+dc down
 ```
 
 ### View logs
 ```bash
-docker compose logs -f
+dc logs -f
 ```
 
 ### Update images
 ```bash
-docker compose pull
-docker compose up -d
+dc pull
+dc up -d
 ```
 
 ### Restart a single container
 ```bash
-docker compose restart <container-name>
+dc restart <container-name>
 ```
+
+## 🤖 Scripts
+
+| Script | Description | Schedule |
+|--------|-------------|----------|
+| [check-services.sh](./scripts/check-services.sh) | Checks all 20 services via HTTP, sends Telegram alert on failure | Every 5 min (cron) |
+| [watchtower-check.sh](./scripts/watchtower-check.sh) | Checks for new container images, notifies via Telegram | Every Sunday 10:00 (cron) |
+| [setup-symlinks.sh](./scripts/setup-symlinks.sh) | Restores `/usr/local/bin` symlinks to scripts after reboot | At array start (Unraid User Scripts) |
+
+Scripts are stored in `/mnt/user/appdata/compose/scripts/` and symlinked to `/usr/local/bin/`.
+Secrets (Telegram token, etc.) are stored in `scripts/.env`, excluded from git.
 
 ## 🌐 Networking
 
@@ -127,7 +140,7 @@ docker compose restart <container-name>
 - All secrets stored in `.env` files, excluded from git via `.gitignore`
 - External access via Cloudflare Tunnel only — no ports exposed to the internet
 - SSO via Authentik for supported services
-- Encrypted backups via Duplicati
+- Encrypted backups via Duplicati (VPS + Google Drive)
 
 ## 📋 Notes
 
