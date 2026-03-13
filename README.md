@@ -91,29 +91,29 @@ Each stack has its own `docker-compose.yml` and `.env` file. Secrets are kept in
 
 ### Start a stack
 ```bash
-cs <stack-name>   # cd into stack directory
-dc up -d          # start containers
+cd /mnt/user/appdata/compose/<stack-name>
+docker compose up -d
 ```
 
 ### Stop a stack
 ```bash
-dc down
+docker compose down
 ```
 
 ### View logs
 ```bash
-dc logs -f
+docker compose logs -f
 ```
 
 ### Update images
 ```bash
-dc pull
-dc up -d
+docker compose pull
+docker compose up -d
 ```
 
 ### Restart a single container
 ```bash
-dc restart <container-name>
+docker compose restart <container-name>
 ```
 
 ## 🤖 Scripts
