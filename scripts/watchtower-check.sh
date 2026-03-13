@@ -3,7 +3,8 @@
 # Запускается еженедельно через cron
 # Автор: ilvits | github.com/ilvits/homelab
 
-TELEGRAM_URL="telegram://8623807957:***REMOVED***@telegram?channels=-1003574659412:105"
+# Загружаем переменные из .env
+source /mnt/user/appdata/compose/scripts/.env
 
 docker run --rm \
   -v /var/run/docker.sock:/var/run/docker.sock \
