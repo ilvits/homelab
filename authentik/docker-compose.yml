@@ -1,0 +1,100 @@
+# =============================================================================
+# Authentik — Identity Provider
+# =============================================================================
+# Миграция с Unraid UI. Первый этап — текущий образ, внутренняя сеть.
+# После проверки работоспособности — обновить образ на ghcr.io/goauthentik/server
+# =============================================================================
+
+services:
+
+  postgresql:
+    image: postgres:15
+    container_name: postgres-authentik
+    restart: unless-stopped
+    volumes:
+      - /mnt/user/appdata/postgres-authentik:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=authentik
+      - POSTGRES_PASSWORD=${PG_PASS}
+      - POSTGRES_DB=authentik
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d authentik -U authentik"]
+      start_period: 20s
+      interval: 30s
+      retries: 5
+      timeout: 5s
+    networks:
+      - authentik
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis-authentik
+    restart: unless-stopped
+    command: --save 60 1 --loglevel warning
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      start_period: 20s
+      interval: 30s
+      retries: 5
+      timeout: 3s
+    networks:
+      - authentik
+
+  server:
+    image: ghcr.io/goauthentik/server:2026.2.1
+    container_name: authentik
+    restart: unless-stopped
+    command: server
+    ports:
+      - "9000:9000"
+      - "9443:9443"
+    volumes:
+      - /mnt/user/appdata/authentik:/config
+    environment:
+      - TZ=Europe/Moscow
+      - AUTHENTIK_SECRET_KEY=${AUTHENTIK_SECRET_KEY}
+      - AUTHENTIK_REDIS__HOST=redis
+      - AUTHENTIK_POSTGRESQL__HOST=postgresql
+      - AUTHENTIK_POSTGRESQL__PORT=5432
+      - AUTHENTIK_POSTGRESQL__USER=authentik
+      - AUTHENTIK_POSTGRESQL__PASSWORD=${PG_PASS}
+      - AUTHENTIK_POSTGRESQL__NAME=authentik
+      - AUTHENTIK_ERROR_REPORTING__ENABLED=true
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - authentik
+
+  worker:
+    image: ghcr.io/goauthentik/server:2026.2.1
+    container_name: authentik-worker
+    restart: unless-stopped
+    command: worker
+    volumes:
+      - /mnt/user/appdata/authentik/templates:/templates
+      - /mnt/user/backups/authentik:/backups
+    environment:
+      - TZ=Europe/Moscow
+      - AUTHENTIK_SECRET_KEY=${AUTHENTIK_SECRET_KEY}
+      - AUTHENTIK_REDIS__HOST=redis
+      - AUTHENTIK_POSTGRESQL__HOST=postgresql
+      - AUTHENTIK_POSTGRESQL__PORT=5432
+      - AUTHENTIK_POSTGRESQL__USER=authentik
+      - AUTHENTIK_POSTGRESQL__PASSWORD=${PG_PASS}
+      - AUTHENTIK_POSTGRESQL__NAME=authentik
+      - AUTHENTIK_ERROR_REPORTING__ENABLED=true
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - authentik
+
+networks:
+  authentik:
+    name: authentik
+    driver: bridge

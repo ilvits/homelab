@@ -1,0 +1,305 @@
+# =============================================================================
+# Media Stack — Jellyfin + *arr suite + VPN (gluetun)
+# =============================================================================
+# Через gluetun (WireGuard): Prowlarr, Sonarr, Radarr, FlareSolverr,
+#                             Bazarr, Jellyseerr
+# Без VPN (сеть media):      Jellyfin, qBittorrent, Lidarr
+#
+# Сервисы за VPN разделяют сетевой namespace gluetun и видят друг друга
+# через localhost. Остальные сервисы доступны по имени контейнера
+# через сеть media, к которой подключён gluetun.
+#
+# Чувствительные данные и повторяющиеся настройки — в .env
+# =============================================================================
+
+networks:
+  media:
+    name: media
+    driver: bridge
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Gluetun — VPN-шлюз (WireGuard)
+  # ---------------------------------------------------------------------------
+  # Все порты сервисов с network_mode: "service:gluetun"
+  # пробрасываются здесь.
+  # ---------------------------------------------------------------------------
+  gluetun:
+    image: qmcgaw/gluetun:latest
+    container_name: gluetun
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    networks:
+      - media
+    ports:
+      - "9696:9696"   # Prowlarr
+      - "8989:8989"   # Sonarr
+      - "7878:7878"   # Radarr
+      - "8191:8191"   # FlareSolverr
+      - "6767:6767"   # Bazarr
+      - "5055:5055"   # Jellyseerr
+      - "8686:8686"   # Lidarr
+    volumes:
+      - ${APPDATA}/gluetun:/gluetun
+    environment:
+      - TZ=${TZ}
+      - VPN_SERVICE_PROVIDER=custom
+      - VPN_TYPE=wireguard
+      - WIREGUARD_PRIVATE_KEY=${WG_PRIVATE_KEY}
+      - WIREGUARD_ADDRESSES=${WG_ADDRESS}
+      - WIREGUARD_PUBLIC_KEY=${WG_PUBLIC_KEY}
+      - WIREGUARD_ENDPOINT_IP=${WG_ENDPOINT_IP}
+      - WIREGUARD_ENDPOINT_PORT=${WG_ENDPOINT_PORT}
+      - DNS_ADDRESS=${WG_DNS}
+      - FIREWALL_INPUT_PORTS=${FIREWALL_INPUT_PORTS}
+      - FIREWALL_OUTBOUND_SUBNETS=${FIREWALL_OUTBOUND_SUBNETS}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- https://ipinfo.io/ip || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # Jellyfin — медиасервер
+  # ---------------------------------------------------------------------------
+  jellyfin:
+    image: jellyfin/jellyfin:latest
+    container_name: jellyfin
+    restart: unless-stopped
+    networks:
+      - media
+    ports:
+      - "8096:8096"
+      - "8920:8920"
+      - "1900:1900/udp"
+      - "7359:7359/udp"
+    volumes:
+      - ${APPDATA}/jellyfin:/config
+      - ${APPDATA}/jellyfin/cache:/cache
+      - ${MEDIAFILES}/movies:/data/movies:ro
+      - ${MEDIAFILES}/tvshows:/data/tvshows:ro
+      - ${MEDIAFILES}/mult:/cartoons:ro
+    devices:
+      - /dev/dri:/dev/dri
+    environment:
+      - TZ=${TZ}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8096/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # qBittorrent — торрент-клиент
+  # ---------------------------------------------------------------------------
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    restart: unless-stopped
+    networks:
+      - media
+    ports:
+      - "8080:8080"
+      - "6881:6881/tcp"
+      - "6881:6881/udp"
+    volumes:
+      - ${APPDATA}/qbittorrent:/config
+      - ${MEDIAFILES}:/mediafiles
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # Prowlarr — индексер-менеджер (через VPN)
+  # ---------------------------------------------------------------------------
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    restart: unless-stopped
+    network_mode: "service:gluetun"
+    volumes:
+      - ${APPDATA}/prowlarr:/config
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    depends_on:
+      gluetun:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9696/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # Sonarr — сериалы (через VPN)
+  # ---------------------------------------------------------------------------
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    restart: unless-stopped
+    network_mode: "service:gluetun"
+    volumes:
+      - ${APPDATA}/sonarr:/config
+      - ${MEDIAFILES}:/mediafiles
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    depends_on:
+      gluetun:
+        condition: service_healthy
+      prowlarr:
+        condition: service_healthy
+      qbittorrent:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8989/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # Radarr — фильмы (через VPN)
+  # ---------------------------------------------------------------------------
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    restart: unless-stopped
+    network_mode: "service:gluetun"
+    volumes:
+      - ${APPDATA}/radarr:/config
+      - ${MEDIAFILES}:/mediafiles
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    depends_on:
+      gluetun:
+        condition: service_healthy
+      prowlarr:
+        condition: service_healthy
+      qbittorrent:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7878/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # FlareSolverr — обход Cloudflare для Prowlarr (через VPN)
+  # ---------------------------------------------------------------------------
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    restart: unless-stopped
+    network_mode: "service:gluetun"
+    volumes:
+      - ${APPDATA}/flaresolverr:/config
+    environment:
+      - TZ=${TZ}
+      - LOG_LEVEL=info
+    depends_on:
+      gluetun:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8191/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # Bazarr — субтитры (через VPN)
+  # ---------------------------------------------------------------------------
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: bazarr
+    restart: unless-stopped
+    network_mode: "service:gluetun"
+    volumes:
+      - ${APPDATA}/bazarr:/config
+      - ${MEDIAFILES}:/mediafiles
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    depends_on:
+      gluetun:
+        condition: service_healthy
+      sonarr:
+        condition: service_healthy
+      radarr:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6767/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # Jellyseerr — запросы на контент (через VPN)
+  # ---------------------------------------------------------------------------
+  jellyseerr:
+    image: fallenbagel/jellyseerr:latest
+    container_name: jellyseerr
+    restart: unless-stopped
+    network_mode: "service:gluetun"
+    volumes:
+      - ${APPDATA}/jellyseerr:/app/config
+    environment:
+      - TZ=${TZ}
+    depends_on:
+      gluetun:
+        condition: service_healthy
+      jellyfin:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5055/health >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ---------------------------------------------------------------------------
+  # Lidarr — музыка
+  # ---------------------------------------------------------------------------
+  lidarr:
+    image: lscr.io/linuxserver/lidarr:latest
+    container_name: lidarr
+    restart: unless-stopped
+    network_mode: "service:gluetun"
+    volumes:
+      - ${APPDATA}/lidarr:/config
+      - ${MEDIAFILES}:/mediafiles
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    depends_on:
+      gluetun:
+        condition: service_healthy
+      qbittorrent:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8686/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s

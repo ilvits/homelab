@@ -1,0 +1,15 @@
+services:
+  icloudpd-watchdog:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: icloudpd-watchdog
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      # Cookie / сессии — отдельные подпапки для каждого аккаунта
+      - /mnt/user/appdata/icloudpd-ilvits:/config/ilvits
+      - /mnt/user/appdata/icloudpd-kate:/config/kate
+      # Куда скачиваются фото
+      - /mnt/user/photoLibraries/ilvits/icloud:/data/ilvits
+      - /mnt/user/photoLibraries/kate/icloud:/data/kate

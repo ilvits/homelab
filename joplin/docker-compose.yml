@@ -1,0 +1,41 @@
+services:
+  db:
+    image: postgres:16
+    container_name: joplin_db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=joplin
+      - POSTGRES_USER=joplin
+      - POSTGRES_PASSWORD=6b39791e90979328ded1ba5d
+    volumes:
+      - /mnt/user/appdata/joplin-server/postgres:/var/lib/postgresql/data
+
+  app:
+    image: joplin/server:latest
+    container_name: joplin_server
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      - APP_PORT=22300
+      - APP_BASE_URL=https://joplin.panteleyki.com
+      - DB_CLIENT=pg
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DATABASE=joplin
+      - POSTGRES_USER=joplin
+      - POSTGRES_PASSWORD=6b39791e90979328ded1ba5d
+      - SIGNUP_ENABLED=1
+      # --- Mailer / SMTP ---
+      - MAILER_ENABLED=1
+      - MAILER_HOST=mail.fairybrains.com
+      - MAILER_PORT=465
+      - MAILER_SECURITY=tls # tls|starttls|none
+      - MAILER_AUTH_USER=admin@fairybrains.com
+      - MAILER_AUTH_PASSWORD=UiZkFkLuA9vh3TAWWYMg
+      - MAILER_NOREPLY_NAME=Joplin
+      - MAILER_NOREPLY_EMAIL=noreply@panteleyki.com
+    ports:
+      - "22300:22300"
+    volumes:
+      - /mnt/user/appdata/joplin-server/joplin:/home/joplin/.joplin

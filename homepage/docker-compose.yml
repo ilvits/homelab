@@ -1,0 +1,21 @@
+# =============================================================================
+# Homepage — дашборд
+# =============================================================================
+
+services:
+
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+    container_name: homepage
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - /mnt/user/appdata/homepage:/app/config
+      - /mnt/user/userfiles:/userfiles
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    env_file:
+          - /mnt/user/appdata/homepage/.env
+    environment:
+      TZ: "Europe/Moscow"
+      HOMEPAGE_ALLOWED_HOSTS: "dashboard.panteleyki.com,192.168.10.10:3000"

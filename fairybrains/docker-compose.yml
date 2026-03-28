@@ -1,0 +1,19 @@
+# =============================================================================
+# FairyBrains — сайт fairybrains.com
+# =============================================================================
+
+services:
+
+  fairybrains:
+    image: node:20
+    container_name: fairybrains
+    restart: unless-stopped
+    working_dir: /app
+    command: npm start
+    ports:
+      - "3005:3005"
+    volumes:
+      - /mnt/user/appdata/www/fairybrains:/app
+    environment:
+      - TZ=Europe/Moscow
+      - NODE_ENV=production
