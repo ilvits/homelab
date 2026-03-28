@@ -1,0 +1,31 @@
+# =============================================================================
+# Frigate — NVR (камеры)
+# =============================================================================
+# Macvlan (br0) со статическим IP 192.168.10.6
+# =============================================================================
+
+services:
+
+  frigate:
+    image: ghcr.io/blakeblackshear/frigate:stable
+    container_name: frigate
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - /mnt/user/appdata/frigate:/config
+      - /mnt/disks/frigate_rec/frigate:/media/frigate
+      - /etc/localtime:/etc/localtime:ro
+    tmpfs:
+      - /tmp/cache
+    devices:
+      - /dev/dri:/dev/dri
+#    shm_size: 512mb
+    shm_size: "512mb"
+    networks:
+      br0:
+        ipv4_address: 192.168.10.6
+
+networks:
+  br0:
+    external: true
+    name: br0

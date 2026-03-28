@@ -1,0 +1,11 @@
+services:
+  mealie:
+    image: ghcr.io/mealie-recipes/mealie:v3.11.0
+    container_name: mealie
+    restart: unless-stopped
+    ports:
+      - "3015:9000"
+    volumes:
+      - /mnt/user/appdata/mealie:/app/data
+    env_file:
+      - .env

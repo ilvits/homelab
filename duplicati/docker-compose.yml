@@ -1,0 +1,19 @@
+# =============================================================================
+# Duplicati — бэкапы
+# =============================================================================
+
+services:
+
+  duplicati:
+    image: lscr.io/linuxserver/duplicati:latest
+    container_name: duplicati
+    restart: unless-stopped
+    ports:
+      - "8200:8200"
+    volumes:
+      - /mnt/user/appdata/duplicati:/config
+      - /mnt/user/appdata:/source
+      - /mnt/user/scripts:/source/scripts
+      - /mnt/user/backups:/backups
+    env_file:
+      - .env

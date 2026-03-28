@@ -1,0 +1,31 @@
+# =============================================================================
+# Nginx Proxy Manager — reverse proxy
+# =============================================================================
+# Macvlan (br0) со статическим IP 192.168.10.3
+# =============================================================================
+
+services:
+
+  npm:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: npm
+    restart: unless-stopped
+    volumes:
+      - /mnt/user/appdata/npm/data:/data
+      - /mnt/user/appdata/npm/letsencrypt:/etc/letsencrypt
+    environment:
+      - TZ=Europe/Moscow
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:81"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      br0:
+        ipv4_address: 192.168.10.3
+
+networks:
+  br0:
+    external: true
+    name: br0

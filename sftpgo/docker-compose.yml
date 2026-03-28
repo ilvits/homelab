@@ -1,0 +1,24 @@
+# =============================================================================
+# SFTPGo — SFTP/FTP/WebDAV сервер
+# =============================================================================
+
+services:
+
+  sftpgo:
+    image: drakkan/sftpgo:latest
+    container_name: sftpgo
+    restart: unless-stopped
+    ports:
+      - "2022:2022"
+      - "2121:2121"
+      - "2221:8080"
+      - "10080:10080"
+      - "50000-50100:50000-50100"
+    volumes:
+      - /mnt/user/appdata/sftpgo/config:/var/lib/sftpgo
+      - /mnt/user/appdata/sftpgo/data:/srv/sftpgo/data
+      - /mnt/user/appdata/sftpgo/backups:/srv/sftpgo/backups
+      - /mnt/user/userfiles:/userfiles
+      - /mnt/user/appdata:/appdata
+    environment:
+      - TZ=Europe/Moscow

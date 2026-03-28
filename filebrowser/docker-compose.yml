@@ -1,0 +1,18 @@
+# =============================================================================
+# FileBrowser — веб-файловый менеджер
+# =============================================================================
+
+services:
+
+  filebrowser:
+    image: filebrowser/filebrowser:latest
+    container_name: filebrowser
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    volumes:
+      - /mnt/user:/srv
+      - /mnt/user/appdata/filebrowser/db:/database
+      - /mnt/user/appdata/filebrowser/config:/config
+    environment:
+      - TZ=Europe/Moscow
