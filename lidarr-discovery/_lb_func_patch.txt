@@ -1,0 +1,33 @@
+def lb_similar_artists(mbid: str) -> list[dict]:
+    """
+    Fetch similar artists from ListenBrainz for the given MusicBrainz artist ID.
+    Returns a list of dicts: {mbid, name, similarity}.
+
+    Note: trailing slash is required — without it the API issues a redirect and
+    requests drops query parameters on the 301, returning an empty response.
+    """
+    time.sleep(LB_RATE_DELAY)
+    try:
+        # Trailing slash required
+        r = requests.get(
+            f"{LB_API}/1/similar-artists/{mbid}/",
+            timeout=20,
+        )
+        if r.status_code == 404:
+            return []
+        r.raise_for_status()
+        data = r.json()
+        artists = data.get("payload", {}).get("similar_artists", [])
+        result = []
+        for a in artists:
+            similarity = float(a.get("score", 0))
+            if similarity >= MIN_SIMILARITY:
+                result.append({
+                    "mbid": a.get("artist_mbid", ""),
+                    "name": a.get("artist_name", ""),
+                    "similarity": similarity,
+                })
+        return result[:MAX_SIMILAR_PER_ARTIST]
+    except requests.RequestException as exc:
+        log.warning("ListenBrainz request failed for %s: %s", mbid, exc)
+        return []

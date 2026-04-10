@@ -1,0 +1,4 @@
+LIDARR_MONITOR_MODE = os.environ.get("LIDARR_MONITOR_MODE", "future")
+# none   — добавить без мониторинга, ничего не качать
+# future — мониторить только новые релизы (рекомендуется)
+# all    — качать всю дискографию сразу

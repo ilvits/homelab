@@ -1,0 +1,19 @@
+        r = requests.get(
+            f"{LB_API}/1/similar-artists/{mbid}/",
+            params={"algorithm": "session_based_days_7500_session_300_contribution_5_threshold_10_limit_100_filter_True_begin_0_end_0"},
+            timeout=20,
+        )
+        if r.status_code == 404:
+            return []
+        r.raise_for_status()
+        data = r.json()
+        artists = data.get("payload", {}).get("similar_artists", [])
+        # Each entry: {artist_mbid, artist_name, score}
+        # Normalize score to 0.0–1.0 if needed
+        result = []
+        for a in artists:
+            similarity = a.get("score", 0)
+            # ListenBrainz scores vary — normalize to 0–1 range
+            if similarity > 1.0:
+                similarity = similarity / 100.0
+            if similarity >= MIN_SIMILARITY:

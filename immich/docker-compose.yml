@@ -1,24 +1,27 @@
+# =============================================================================
+# Immich — self-hosted photo/video backup (Google Photos alternative)
+# =============================================================================
+
 services:
   immich-server:
     container_name: immich_server
     image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-release}
     user: "99:100"        # UID 99 (nobody), GID 100 (users)
     ports:
-      - "8077:2283"                    # внешний:внутренний
+      - "8077:2283"
     devices:
       - /dev/dri:/dev/dri              # Intel Quick Sync / iGPU
     volumes:
-      - ${UPLOAD_LOCATION}:/usr/src/app/upload                 # сами фото/видео
+      - ${UPLOAD_LOCATION}:/usr/src/app/upload
       - ${EXTERNAL_LOCATION}:/mnt/external
       - /etc/localtime:/etc/localtime:ro
     env_file:
       - .env
     environment:
-      - IMMICH_MACHINE_LEARNING_TIMEOUT=120000   # 120 000 мс = 120 с
-      - CLIP_ENCODING_CONCURRENCY=1              # по одному запросу
+      - IMMICH_MACHINE_LEARNING_TIMEOUT=120000   # 120 000 ms = 120 s
+      - CLIP_ENCODING_CONCURRENCY=1
     depends_on:
       - redis
-      # - immich-machine-learning
       - database
     restart: always
     healthcheck:
@@ -29,12 +32,14 @@ services:
   immich-machine-learning:
     container_name: immich_ml
     user: "99:100"        # UID 99 (nobody), GID 100 (users)
-    # OpenVINO-вариант образа → ускорение на iGPU
+    # OpenVINO image variant -> iGPU hardware acceleration
     image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}-openvino
     devices:
-      - /dev/dri:/dev/dri              # даём ML-службе доступ к GPU
+      - /dev/dri:/dev/dri
     volumes:
       - /mnt/user/appdata/immich_server/ml:/cache
+    tmpfs:
+      - /tmp:uid=99,gid=100
     env_file:
       - .env
     environment:
@@ -74,7 +79,7 @@ services:
 
 volumes:
   model-cache:
-  
+
 networks:
   immich:
     driver: bridge

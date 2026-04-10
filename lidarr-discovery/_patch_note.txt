@@ -1,0 +1,1 @@
+LIDARR_MONITOR_MODE = os.environ.get("LIDARR_MONITOR_MODE", "future")  # none | future | all

@@ -1,7 +1,7 @@
 # =============================================================================
-# Frigate — NVR (камеры)
+# Frigate — NVR with real-time object detection (9 cameras, Coral TPU)
 # =============================================================================
-# Macvlan (br0) со статическим IP 192.168.10.6
+# Macvlan (br0) with static IP 192.168.10.6
 # =============================================================================
 
 services:
@@ -19,7 +19,6 @@ services:
       - /tmp/cache
     devices:
       - /dev/dri:/dev/dri
-#    shm_size: 512mb
     shm_size: "512mb"
     networks:
       br0:

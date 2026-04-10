@@ -1,9 +1,8 @@
 #!/bin/bash
-# watchtower-check.sh — проверка обновлений контейнеров
-# Запускается еженедельно через cron
-# Автор: ilvits | github.com/ilvits/homelab
+# watchtower-check.sh — weekly container update check
+# Runs via cron; reports available updates to Telegram via Watchtower monitor-only mode
 
-# Загружаем переменные из .env
+# Load secrets from .env
 source /mnt/user/appdata/compose/scripts/.env
 
 docker run --rm \

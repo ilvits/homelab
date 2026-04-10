@@ -1,5 +1,5 @@
 # =============================================================================
-# FairyBrains — сайт fairybrains.com
+# FairyBrains — personal website (fairybrains.com), served via Cloudflare Tunnel
 # =============================================================================
 
 services:

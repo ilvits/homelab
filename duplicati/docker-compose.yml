@@ -1,5 +1,5 @@
 # =============================================================================
-# Duplicati — бэкапы
+# Duplicati — encrypted backups (Vaultwarden -> VPS SFTP + Google Drive)
 # =============================================================================
 
 services:
@@ -13,7 +13,7 @@ services:
     volumes:
       - /mnt/user/appdata/duplicati:/config
       - /mnt/user/appdata:/source
-      - /mnt/user/scripts:/source/scripts
+      - /mnt/user/appdata/compose/scripts:/source/scripts
       - /mnt/user/backups:/backups
     env_file:
       - .env
