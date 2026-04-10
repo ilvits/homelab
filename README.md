@@ -55,7 +55,7 @@ Sensitive values are never committed — see `.env.example` files for required v
 | Stack | Description |
 |-------|-------------|
 | [authentik](./authentik/) | SSO / Identity Provider — centralised auth for all services |
-| [npm](./npm/) | Nginx Proxy Manager — reverse proxy with SSL termination, macvlan IP 192.168.10.3 |
+| [npm](./npm/) | Nginx Proxy Manager — reverse proxy with SSL termination, macvlan IP |
 | [cloudflared](./cloudflared/) | Cloudflare Tunnel — secure external access without open inbound ports |
 | [vaultwarden](./vaultwarden/) | Self-hosted Bitwarden-compatible password manager |
 
@@ -65,7 +65,7 @@ Sensitive values are never committed — see `.env.example` files for required v
 |-------|-------------|
 | [media-stack](./media-stack/) | Full *arr suite — Jellyfin, Sonarr, Radarr, Lidarr, Prowlarr, Bazarr, Jellyseerr, qBittorrent, FlareSolverr; all traffic except Jellyfin/qBittorrent routed through Gluetun VPN |
 | [immich](./immich/) | Photo & video backup (Google Photos alternative) with OpenVINO ML acceleration |
-| [seafile](./seafile/) | File sync & share (Dropbox alternative), macvlan IP 192.168.10.7 |
+| [seafile](./seafile/) | File sync & share (Dropbox alternative), macvlan IP |
 | [navidrome](./navidrome/) | Music streaming server (Subsonic-compatible) |
 | [icloudpd-watchdog](./icloudpd-watchdog/) | Automated iCloud photo sync for two accounts with Telegram bot 2FA handling |
 | [filebrowser](./filebrowser/) | Web-based file manager |
@@ -79,7 +79,7 @@ Sensitive values are never committed — see `.env.example` files for required v
 | [uptime-kuma](./uptime-kuma/) | Service uptime monitoring with Telegram alerting |
 | [apprise-api](./apprise-api/) | Unified notification gateway — Telegram alerts for all scripts and services |
 | [duplicati](./duplicati/) | Encrypted backups — Vaultwarden → VPS (SFTP) + Google Drive |
-| [frigate](./frigate/) | NVR with real-time object detection — 9 cameras, Coral TPU, macvlan IP 192.168.10.6 |
+| [frigate](./frigate/) | NVR with real-time object detection — 9 cameras, Coral TPU, macvlan IP |
 | [dockge](./dockge/) | Docker Compose stack management UI (replaced Portainer) |
 
 ### Productivity
@@ -109,8 +109,8 @@ Host-side scripts in [`scripts/`](./scripts/) — run via Unraid User Scripts (c
 
 | Script | Schedule | Description |
 |--------|----------|-------------|
-| `check-services.sh` | every 5 min | HTTP health check for 20 services, alerts via apprise-api `critical` tag |
-| `backup-photos-glacier.sh` | 2nd of month, 02:00 | Cold backup of 1.88 TB photo archive to AWS S3 Glacier Deep Archive via rclone crypt |
+| `check-services.sh` | every 5 min | HTTP health check for all services, alerts via apprise-api `critical` tag |
+| `backup-photos-glacier.sh` | 2nd of month, 02:00 | Cold backup of photo archive to AWS S3 Glacier Deep Archive via rclone crypt |
 | `duplicati_notify.sh` | after-backup hook | Sends Duplicati result to apprise-api `backup` tag on Warning/Error |
 | `weekly_summary.sh` | weekly | 7-day Duplicati summary report |
 | `disk_usage_notify.sh` | daily | Disk usage check for `/mnt/user`, `/mnt/cache`, `/boot`; alerts if >85% |
@@ -131,8 +131,8 @@ Host-side scripts in [`scripts/`](./scripts/) — run via Unraid User Scripts (c
 | What | How | Where |
 |------|-----|-------|
 | Vaultwarden | Duplicati (scheduled) | VPS SFTP + Google Drive |
-| Photo archive (1.88 TB) | `backup-photos-glacier.sh` + rclone crypt | AWS S3 Glacier Deep Archive (`eu-central-1`) |
-| Homelab configs | `git push` | github.com/ilvits/homelab (public) |
+| Photo archive | `backup-photos-glacier.sh` + rclone crypt | AWS S3 Glacier Deep Archive |
+| Homelab configs | `git push` | Private git remote |
 | iCloud photos | icloudpd-watchdog | `/mnt/user/photoLibraries/` |
 | Pi-hole config | rsync cron | `/mnt/user/backups/pihole/` |
 | VPS stacks | rsync script on VPS | `/mnt/user/backups/vps/` |
@@ -141,9 +141,9 @@ Host-side scripts in [`scripts/`](./scripts/) — run via Unraid User Scripts (c
 
 - **Reverse proxy**: Nginx Proxy Manager with SSL (Let's Encrypt)
 - **External access**: Cloudflare Tunnel only — no ports exposed to the internet
-- **VPN**: WireGuard + AmneziaWG on VPS, managed via WGDashboard (`wg.fairybrains.com`)
-- **macvlan (br0)**: NPM (10.3), Seafile (10.7), Frigate (10.6) — dedicated LAN IPs
-- **DNS**: Pi-hole on RPI4B (192.168.10.4, primary) + RPI3 (192.168.10.5, backup), synced via nebula-sync
+- **VPN**: WireGuard + AmneziaWG on VPS, managed via WGDashboard
+- **macvlan (br0)**: NPM, Seafile, Frigate use dedicated LAN IPs
+- **DNS**: Pi-hole on RPI4B (primary) + RPI3 (backup), synced via nebula-sync
 
 ## Usage
 
@@ -182,4 +182,4 @@ docker compose restart <container-name>
 - `media-stack`: all *arr apps + Lidarr route through Gluetun (WireGuard VPN gateway); ports published on Gluetun service
 - Glacier backup runs on the 2nd of the month (1st is reserved for Unraid Parity Check)
 - `lidarr-discovery` runs as a one-shot container triggered via Unraid User Scripts; uses ListenBrainz Labs `POST /similar-artists/json` endpoint
-- `icloudpd-watchdog` handles 2FA interactively via Telegram — session cookie stored in `/mnt/user/appdata/icloudpd-{ilvits,kate}/`
+- `icloudpd-watchdog` handles 2FA interactively via Telegram — session cookies stored per account in `/mnt/user/appdata/`
