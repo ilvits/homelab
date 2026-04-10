@@ -2,10 +2,10 @@
 # sync-vaultwarden.sh — sync Vaultwarden data from Unraid to VPS backup instance
 # Runs on a cron schedule; performs a safe SQLite backup while the container is live
 
+source /mnt/user/appdata/compose/scripts/.env
+
 SRC="/mnt/user/appdata/vaultwarden"
 TMP="/tmp/vw-sync"
-VPS="root@109.94.171.64"
-VPS_DATA="/opt/stacks/vaultwarden-backup/data"
 LOG="/var/log/sync-vaultwarden.log"
 
 log() { echo "$(date '+%Y-%m-%d %H:%M:%S') $1" >> "$LOG"; }
@@ -32,7 +32,7 @@ rsync -a "$SRC/sends/" "$TMP/sends/"
 rsync -az --delete \
   --exclude='rsa_key.pem' \
   "$TMP/" \
-  "$VPS:$VPS_DATA/"
+  "${VPS_USER}@${VPS_HOST}:${VPS_VAULTWARDEN_DATA}/"
 
 if [ $? -ne 0 ]; then
   log "ERROR: rsync to VPS failed"
@@ -41,7 +41,8 @@ if [ $? -ne 0 ]; then
 fi
 
 # Restart backup container to pick up new database
-ssh "$VPS" "cd /opt/stacks/vaultwarden-backup && docker compose restart" >> "$LOG" 2>&1
+ssh "${VPS_USER}@${VPS_HOST}" \
+  "cd $(dirname "$VPS_VAULTWARDEN_DATA") && docker compose restart" >> "$LOG" 2>&1
 
 rm -rf "$TMP"
 log "Sync completed successfully"
