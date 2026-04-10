@@ -1,11 +1,11 @@
 #!/bin/bash
-# check-services.sh — проверка доступности сервисов homelab
-# Автор: ilvits | github.com/ilvits/homelab
+# check-services.sh — homelab service availability check
+# github.com/ilvits/homelab
 
 LOGFILE="/var/log/check-services.log"
 APPRISE_URL="http://localhost:8001/notify/critical"
 
-# Формат: "название:порт"
+# Format: "name:port"
 SERVICES=(
   "jellyfin:8096"
   "sonarr:8989"
@@ -49,7 +49,7 @@ check_service() {
   else
     echo "$TIMESTAMP  FAIL  $name (:$port)" >> "$LOGFILE"
     FAIL_COUNT=$((FAIL_COUNT + 1))
-    notify "🔴 Homelab: $name is DOWN" "Service $name (port $port) is not responding"
+    notify "Homelab: $name is DOWN" "Service $name (port $port) is not responding"
   fi
 }
 

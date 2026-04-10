@@ -1,15 +1,15 @@
 # =============================================================================
-# Media Stack — Jellyfin + *arr suite + VPN (gluetun)
+# Media Stack — Jellyfin + *arr suite + VPN (Gluetun)
 # =============================================================================
-# Через gluetun (WireGuard): Prowlarr, Sonarr, Radarr, FlareSolverr,
-#                             Bazarr, Jellyseerr
-# Без VPN (сеть media):      Jellyfin, qBittorrent, Lidarr
+# Behind Gluetun (WireGuard): Prowlarr, Sonarr, Radarr, FlareSolverr,
+#                              Bazarr, Jellyseerr, Lidarr
+# Direct network (media):     Jellyfin, qBittorrent
 #
-# Сервисы за VPN разделяют сетевой namespace gluetun и видят друг друга
-# через localhost. Остальные сервисы доступны по имени контейнера
-# через сеть media, к которой подключён gluetun.
+# Services behind VPN share Gluetun's network namespace and reach each other
+# via localhost. Other services use container names within the media network,
+# to which Gluetun is also attached.
 #
-# Чувствительные данные и повторяющиеся настройки — в .env
+# Secrets and repeated settings are in .env
 # =============================================================================
 
 networks:
@@ -20,10 +20,10 @@ networks:
 services:
 
   # ---------------------------------------------------------------------------
-  # Gluetun — VPN-шлюз (WireGuard)
+  # Gluetun — WireGuard VPN gateway
   # ---------------------------------------------------------------------------
-  # Все порты сервисов с network_mode: "service:gluetun"
-  # пробрасываются здесь.
+  # All ports for services using network_mode: "service:gluetun"
+  # must be published here.
   # ---------------------------------------------------------------------------
   gluetun:
     image: qmcgaw/gluetun:latest
@@ -63,7 +63,7 @@ services:
       start_period: 30s
 
   # ---------------------------------------------------------------------------
-  # Jellyfin — медиасервер
+  # Jellyfin — media server
   # ---------------------------------------------------------------------------
   jellyfin:
     image: jellyfin/jellyfin:latest
@@ -94,7 +94,7 @@ services:
       start_period: 30s
 
   # ---------------------------------------------------------------------------
-  # qBittorrent — торрент-клиент
+  # qBittorrent — torrent client
   # ---------------------------------------------------------------------------
   qbittorrent:
     image: lscr.io/linuxserver/qbittorrent:latest
@@ -121,7 +121,7 @@ services:
       start_period: 30s
 
   # ---------------------------------------------------------------------------
-  # Prowlarr — индексер-менеджер (через VPN)
+  # Prowlarr — indexer manager (via VPN)
   # ---------------------------------------------------------------------------
   prowlarr:
     image: lscr.io/linuxserver/prowlarr:latest
@@ -145,7 +145,7 @@ services:
       start_period: 30s
 
   # ---------------------------------------------------------------------------
-  # Sonarr — сериалы (через VPN)
+  # Sonarr — TV series automation (via VPN)
   # ---------------------------------------------------------------------------
   sonarr:
     image: lscr.io/linuxserver/sonarr:latest
@@ -174,7 +174,7 @@ services:
       start_period: 30s
 
   # ---------------------------------------------------------------------------
-  # Radarr — фильмы (через VPN)
+  # Radarr — movie automation (via VPN)
   # ---------------------------------------------------------------------------
   radarr:
     image: lscr.io/linuxserver/radarr:latest
@@ -203,7 +203,7 @@ services:
       start_period: 30s
 
   # ---------------------------------------------------------------------------
-  # FlareSolverr — обход Cloudflare для Prowlarr (через VPN)
+  # FlareSolverr — Cloudflare bypass for Prowlarr (via VPN)
   # ---------------------------------------------------------------------------
   flaresolverr:
     image: ghcr.io/flaresolverr/flaresolverr:latest
@@ -226,7 +226,7 @@ services:
       start_period: 30s
 
   # ---------------------------------------------------------------------------
-  # Bazarr — субтитры (через VPN)
+  # Bazarr — subtitle management (via VPN)
   # ---------------------------------------------------------------------------
   bazarr:
     image: lscr.io/linuxserver/bazarr:latest
@@ -255,7 +255,7 @@ services:
       start_period: 30s
 
   # ---------------------------------------------------------------------------
-  # Jellyseerr — запросы на контент (через VPN)
+  # Jellyseerr — content request UI (via VPN)
   # ---------------------------------------------------------------------------
   jellyseerr:
     image: fallenbagel/jellyseerr:latest
@@ -278,7 +278,7 @@ services:
       retries: 3
 
   # ---------------------------------------------------------------------------
-  # Lidarr — музыка
+  # Lidarr — music automation (via VPN)
   # ---------------------------------------------------------------------------
   lidarr:
     image: lscr.io/linuxserver/lidarr:latest

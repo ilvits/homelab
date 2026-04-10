@@ -1,0 +1,3 @@
+LIDARR_MONITOR = os.environ.get("LIDARR_MONITOR", "false").lower() == "true"
+
+DISCOVERY_DEPTH = int(os.environ.get("DISCOVERY_DEPTH", "1"))

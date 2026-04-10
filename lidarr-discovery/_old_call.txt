@@ -1,0 +1,5 @@
+        r = requests.get(
+            f"{LB_API}/1/similar-artists/{mbid}/",
+            params={"algorithm": "session_based_days_7500_session_300_contribution_5_threshold_10_limit_100_filter_True_begin_0_end_0"},
+            timeout=20,
+        )

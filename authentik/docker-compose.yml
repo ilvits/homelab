@@ -1,8 +1,8 @@
 # =============================================================================
-# Authentik — Identity Provider
+# Authentik — Identity Provider / SSO
 # =============================================================================
-# Миграция с Unraid UI. Первый этап — текущий образ, внутренняя сеть.
-# После проверки работоспособности — обновить образ на ghcr.io/goauthentik/server
+# Note: TZ is intentionally omitted from the server/worker — setting it breaks
+# OAuth/SAML token validation.
 # =============================================================================
 
 services:
@@ -59,7 +59,7 @@ services:
       - AUTHENTIK_POSTGRESQL__USER=authentik
       - AUTHENTIK_POSTGRESQL__PASSWORD=${PG_PASS}
       - AUTHENTIK_POSTGRESQL__NAME=authentik
-      - AUTHENTIK_ERROR_REPORTING__ENABLED=true
+      - AUTHENTIK_ERROR_REPORTING__ENABLED=false
     depends_on:
       postgresql:
         condition: service_healthy
@@ -85,7 +85,7 @@ services:
       - AUTHENTIK_POSTGRESQL__USER=authentik
       - AUTHENTIK_POSTGRESQL__PASSWORD=${PG_PASS}
       - AUTHENTIK_POSTGRESQL__NAME=authentik
-      - AUTHENTIK_ERROR_REPORTING__ENABLED=true
+      - AUTHENTIK_ERROR_REPORTING__ENABLED=false
     depends_on:
       postgresql:
         condition: service_healthy

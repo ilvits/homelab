@@ -1,5 +1,5 @@
 # =============================================================================
-# Cloudflare Tunnel — туннель для fairybrains.com
+# Cloudflare Tunnel — exposes fairybrains.com without open ports
 # =============================================================================
 
 services:

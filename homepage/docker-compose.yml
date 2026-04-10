@@ -1,5 +1,5 @@
 # =============================================================================
-# Homepage — дашборд
+# Homepage — service dashboard
 # =============================================================================
 
 services:
@@ -15,7 +15,7 @@ services:
       - /mnt/user/userfiles:/userfiles
       - /var/run/docker.sock:/var/run/docker.sock:ro
     env_file:
-          - /mnt/user/appdata/homepage/.env
+      - /mnt/user/appdata/homepage/.env
     environment:
       TZ: "Europe/Moscow"
       HOMEPAGE_ALLOWED_HOSTS: "dashboard.panteleyki.com,192.168.10.10:3000"

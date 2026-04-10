@@ -42,8 +42,6 @@ services:
     image: ${SEAFILE_IMAGE:-seafileltd/seafile-pro-mc:13.0-latest}
     container_name: seafile
     restart: unless-stopped
-    # ports:
-    #   - "80:80"
     volumes:
       - type: bind
         source: /mnt/user/appdata/seafile/data
@@ -54,8 +52,6 @@ services:
         source: /mnt/user/appdata/seafile/nginx/seafile.nginx.conf
         target: /etc/nginx/sites-enabled/seafile.nginx.conf
         read_only: true
-    # volumes:
-    #   - ${SEAFILE_VOLUME:-/mnt/user/appdata/seafile/data}:/shared
     environment:
       - INIT_SEAFILE_MYSQL_ROOT_PASSWORD=${INIT_SEAFILE_MYSQL_ROOT_PASSWORD:-}
       - SEAFILE_MYSQL_DB_HOST=${SEAFILE_MYSQL_DB_HOST:-db}
@@ -101,9 +97,6 @@ services:
       - SEAFILE_AI_SERVER_URL=${SEAFILE_AI_SERVER_URL:-http://seafile-ai:8888}
       - SEAFILE_AI_SECRET_KEY=${JWT_PRIVATE_KEY:?Variable is not set or empty}
       - MD_FILE_COUNT_LIMIT=${MD_FILE_COUNT_LIMIT:-100000}
-    # labels:
-    #   caddy: ${SEAFILE_SERVER_PROTOCOL:-http}://${SEAFILE_SERVER_HOSTNAME:?Variable is not set or empty}
-    #   caddy.reverse_proxy: "{{upstreams 80}}"
     depends_on:
       db:
         condition: service_healthy
@@ -113,17 +106,10 @@ services:
       seafile-net: {}
       br0:
         ipv4_address: 192.168.10.7
-      # networks:
-      # # 1) внутренняя сеть для связи с db/redis
-      # - seafile-net
-      # # 2) macvlan/ipvlan сеть LAN с фиксированным IP
-      # br0:
-      #   ipv4_address: 192.168.10.7
 
 networks:
   seafile-net:
     name: seafile-net
-  # ВАЖНО: эта сеть уже должна существовать в Docker (Unraid)
-  # и быть типа macvlan/ipvlan (обычно это br0).
+  # NOTE: this network must already exist in Docker (Unraid) as a macvlan/ipvlan type (typically br0)
   br0:
     external: true

@@ -1,9 +1,5 @@
 # =============================================================================
-# Beszel — мониторинг серверов
-# =============================================================================
-
-# =============================================================================
-# Beszel — мониторинг серверов
+# Beszel — server and container resource monitoring
 # =============================================================================
 
 services:
@@ -35,7 +31,7 @@ services:
       - /mnt/disk5/.beszel:/extra-filesystems/sdB__disk5:ro
       - /mnt/disk6/.beszel:/extra-filesystems/sdC__disk6:ro
 
-      # Cache / pools / отдельные диски
+      # Cache pools and additional disks
       - /mnt/cache/.beszel:/extra-filesystems/nvme0n1p1__cache:ro
       - /mnt/cacheb/.beszel:/extra-filesystems/sde1__cacheb:ro
       - /mnt/disks/frigate_rec/.beszel:/extra-filesystems/sdc1__frigate_rec:ro
