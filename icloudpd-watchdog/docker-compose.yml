@@ -7,9 +7,11 @@ services:
     restart: unless-stopped
     env_file: .env
     volumes:
-      # Cookie/session directories — separate subfolder per account
+      # bot.py is mounted directly — only docker compose restart needed after changes
+      - ./bot.py:/app/bot.py
+      # Cookie/session storage — separate subdirs per account
       - /mnt/user/appdata/icloudpd-ilvits:/config/ilvits
       - /mnt/user/appdata/icloudpd-kate:/config/kate
-      # Photo download targets
+      # Photo download destinations
       - /mnt/user/photoLibraries/ilvits/icloud:/data/ilvits
       - /mnt/user/photoLibraries/kate/icloud:/data/kate

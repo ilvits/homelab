@@ -41,6 +41,9 @@ services:
       - "6767:6767"   # Bazarr
       - "5055:5055"   # Jellyseerr
       - "8686:8686"   # Lidarr
+      - "8080:8080"   # qbittorrent WebUI
+      - "6881:6881"   # torrent port
+      - "6881:6881/udp"
     volumes:
       - ${APPDATA}/gluetun:/gluetun
     environment:
@@ -56,9 +59,10 @@ services:
       - FIREWALL_INPUT_PORTS=${FIREWALL_INPUT_PORTS}
       - FIREWALL_OUTBOUND_SUBNETS=${FIREWALL_OUTBOUND_SUBNETS}
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- https://ipinfo.io/ip || exit 1"]
-      interval: 30s
-      timeout: 10s
+      test: ["CMD-SHELL", "/gluetun-entrypoint healthcheck"]
+      #test: ["CMD-SHELL", "wget -qO- https://ipinfo.io/ip || exit 1"]
+      interval: 10s
+      timeout: 5s
       retries: 5
       start_period: 30s
 
@@ -100,12 +104,13 @@ services:
     image: lscr.io/linuxserver/qbittorrent:latest
     container_name: qbittorrent
     restart: unless-stopped
-    networks:
-      - media
-    ports:
-      - "8080:8080"
-      - "6881:6881/tcp"
-      - "6881:6881/udp"
+    network_mode: "service:gluetun"
+#    networks:
+#      - media
+#    ports:
+#      - "8080:8080"
+#      - "6881:6881/tcp"
+#      - "6881:6881/udp"
     volumes:
       - ${APPDATA}/qbittorrent:/config
       - ${MEDIAFILES}:/mediafiles
@@ -113,6 +118,9 @@ services:
       - PUID=${PUID}
       - PGID=${PGID}
       - TZ=${TZ}
+    depends_on:
+      gluetun:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080"]
       interval: 30s

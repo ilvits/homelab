@@ -22,6 +22,7 @@ services:
     network_mode: host
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /mnt/user/appdata/beszel-agent:/var/lib/beszel-agent
 
       # Unraid array disks
       - /mnt/disk1/.beszel:/extra-filesystems/sdX__disk1:ro
