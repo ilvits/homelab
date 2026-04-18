@@ -19,11 +19,11 @@ logging.basicConfig(
 logging.getLogger('httpx').setLevel(logging.WARNING)
 log = logging.getLogger(__name__)
 
-# ── Config ────────────────────────────────────────────────────────────────────
+# ── Config ─────────────────────────────────────────────────────────────────────
 TELEGRAM_TOKEN = os.environ['TELEGRAM_TOKEN']
 CHAT_ID        = int(os.environ['CHAT_ID'])
-# USER_ID — your personal Telegram ID (find it by messaging @userinfobot)
-# Required to accept 2FA codes sent to the bot in a private chat
+# USER_ID — your personal Telegram ID (find it: message @userinfobot in private)
+# Required to accept 2FA codes sent to the bot in private chat
 USER_ID        = int(os.environ.get('USER_ID', '0'))
 SYNC_INTERVAL  = int(os.environ.get('SYNC_INTERVAL', '3600'))
 
@@ -75,7 +75,7 @@ AUTH_ERROR_PATTERNS = [
     '-20101',
 ]
 
-# Apple temporary throttle — skip auth, wait for next cycle
+# Apple throttling — skip auth attempt, wait for next cycle
 APPLE_THROTTLE_PATTERNS = [
     'apple icloud is temporary refusing',
     'temporarily refusing',
@@ -100,7 +100,7 @@ class State:
         self.waiting_2fa: bool   = False
         self.code_event:  asyncio.Event | None = None  # created in main()
         self.last_code:   str    = ''
-        self.current_account: str = ''  # name of the account currently being authorized
+        self.current_account: str = ''  # name of account currently being authorized
 
 state = State()
 
@@ -119,10 +119,10 @@ def base_cmd(acc: Account) -> list[str]:
         '--cookie-directory', acc.cookie_dir,
     ]
 
-# ── Auth flow ─────────────────────────────────────────────────────────────────
+# ── Auth flow ─────────────────────────────────────────────────────────────────────
 async def do_auth(acc: Account, bot: Bot) -> bool:
     if state.auth_proc is not None:
-        await notify(bot, f'WARNING: authorization already in progress ({state.current_account}).')
+        await notify(bot, f'⚠️ Авторизация уже идёт ({state.current_account}).')
         return False
 
     cmd = base_cmd(acc) + ['--auth-only']
@@ -149,7 +149,7 @@ async def do_auth(acc: Account, bot: Bot) -> bool:
             except asyncio.TimeoutError:
                 log.warning('[%s] Auth: no output for 120s, terminating', acc.name)
                 proc.terminate()
-                await notify(bot, f'[{acc.name}] Auth timeout. Try /reauth {acc.name}')
+                await notify(bot, f'⏰ [{acc.name}] Таймаут авторизации. Попробуй /reauth {acc.name}')
                 return False
 
             if not chunk:
@@ -166,15 +166,15 @@ async def do_auth(acc: Account, bot: Bot) -> bool:
 
                 await notify(
                     bot,
-                    f'<b>iCloud 2FA — {acc.name}</b>\n\n'
-                    f'Apple is requesting a verification code for <code>{acc.username}</code>.\n'
-                    f'Send me the 6-digit code from SMS or the authenticator app:'
+                    f'🔐 <b>iCloud 2FA — {acc.name}</b>\n\n'
+                    f'Apple запрашивает код подтверждения для <code>{acc.username}</code>.\n'
+                    f'Отправь мне 6-значный код из SMS или приложения:'
                 )
 
                 try:
                     await asyncio.wait_for(state.code_event.wait(), timeout=300)
                 except asyncio.TimeoutError:
-                    await notify(bot, f'[{acc.name}] No code received within 5 minutes. Try /reauth {acc.name}')
+                    await notify(bot, f'⏰ [{acc.name}] Код не получен за 5 минут. Попробуй /reauth {acc.name}')
                     proc.terminate()
                     return False
 
@@ -182,7 +182,7 @@ async def do_auth(acc: Account, bot: Bot) -> bool:
                 await proc.stdin.drain()
                 state.waiting_2fa = False
                 buf = ''
-                await notify(bot, 'Code submitted, waiting for Apple response...')
+                await notify(bot, '✅ Код отправлен, ждём ответа Apple...')
 
     finally:
         state.auth_proc       = None
@@ -193,7 +193,7 @@ async def do_auth(acc: Account, bot: Bot) -> bool:
     rc = proc.returncode
     log.info('[%s] Auth exited with code %d', acc.name, rc)
 
-    # icloudpd may return 0 even on error — check output as well
+    # icloudpd may return 0 even on error — check output
     wrong_password_patterns = [
         'invalid email/password',
         'check the account information',
@@ -209,33 +209,33 @@ async def do_auth(acc: Account, bot: Bot) -> bool:
     if match(buf, wrong_code_patterns):
         await notify(
             bot,
-            f'<b>[{acc.name}]</b> Incorrect verification code.\n'
-            f'Try /reauth {acc.name} and enter a fresh code from your device.'
+            f'❌ <b>[{acc.name}]</b> Неверный код подтверждения.\n'
+            f'Попробуй /reauth {acc.name} и введи актуальный код с устройства.'
         )
         return False
 
     if match(buf, wrong_password_patterns):
         await notify(
             bot,
-            f'<b>[{acc.name}]</b> Invalid username or password.\n'
-            f'Update the password in .env and restart the container.\n'
-            f'If 2FA is enabled, an app-specific password may be required:\n'
-            f'appleid.apple.com -> Security -> App-Specific Passwords.'
+            f'❌ <b>[{acc.name}]</b> Неверный логин или пароль.\n'
+            f'Обнови пароль в .env и перезапусти контейнер.\n'
+            f'Если включена 2FA — нужен app-specific password:\n'
+            f'appleid.apple.com → Безопасность → Пароли для приложений.'
         )
         return False
 
     if rc == 0:
-        await notify(bot, f'<b>[{acc.name}]</b> Authorization successful!')
+        await notify(bot, f'✅ <b>[{acc.name}]</b> Авторизация успешна!')
         return True
 
-    await notify(bot, f'<b>[{acc.name}]</b> Authorization failed (exit code {rc}). Try /reauth {acc.name}')
+    await notify(bot, f'❌ <b>[{acc.name}]</b> Ошибка авторизации (код {rc}). Попробуй /reauth {acc.name}')
     return False
 
-# ── Sync ──────────────────────────────────────────────────────────────────────
+# ── Sync ──────────────────────────────────────────────────────────────────────────
 async def sync_account(acc: Account, bot: Bot) -> bool:
     """
-    Syncs a single account.
-    Returns False if re-authorization is needed.
+    Синхронизирует один аккаунт.
+    Возвращает False если нужна переавторизация.
     """
     until_found = os.environ.get('UNTIL_FOUND', '50')
     cmd = base_cmd(acc) + [
@@ -270,7 +270,7 @@ async def sync_account(acc: Account, bot: Bot) -> bool:
             all_output.append(decoded)
         if match(decoded, AUTH_ERROR_PATTERNS):
             auth_error = True
-        if 'downloading' in decoded.lower() or 'new media' in decoded.lower():
+        if decoded.lower().startswith('downloaded /'):
             downloaded += 1
 
     await proc.wait()
@@ -284,22 +284,22 @@ async def sync_account(acc: Account, bot: Bot) -> bool:
         return None  # None = throttled, do not trigger re-auth
 
     if auth_error or rc == 2:
-        return False  # re-authorization required
+        return False  # re-auth required
 
     if downloaded > 0:
-        await notify(bot, f'<b>[{acc.name}]</b> Downloaded {downloaded} new file(s)')
+        await notify(bot, f'📥 <b>[{acc.name}]</b> Скачано новых файлов: {downloaded}')
     else:
         log.info('[%s] No new files', acc.name)
 
     return True
 
-# ── Main sync loop ────────────────────────────────────────────────────────────
+# ── Main sync loop ────────────────────────────────────────────────────────────────
 async def sync_loop(bot: Bot):
-    await asyncio.sleep(15)  # allow the bot to fully start
+    await asyncio.sleep(15)  # give the bot time to start up
 
     while True:
         for acc in ACCOUNTS:
-            # Skip if re-auth is already in progress for this account (e.g. from /reauth)
+            # If auth is already running for this account (e.g. via /reauth) — skip
             if state.auth_proc is not None and state.current_account == acc.name:
                 log.info('[%s] Auth in progress, skipping scheduled sync', acc.name)
                 continue
@@ -311,18 +311,18 @@ async def sync_loop(bot: Bot):
                 log.exception('[%s] Sync exception: %s', acc.name, e)
 
             if ok is None:
-                # Apple temporary throttle — skip auth, wait for next cycle
-                await notify(bot, f'<b>[{acc.name}]</b> Apple is temporarily throttling requests. Retry in {SYNC_INTERVAL//3600}h.')
+                # Apple is throttling — skip auth, wait for next cycle
+                await notify(bot, f'⏳ <b>[{acc.name}]</b> Apple временно блокирует запросы. Повтор через {SYNC_INTERVAL//3600}ч.')
                 continue
 
             if not ok:
-                # Check if auth was already triggered while we were syncing
+                # Re-check — auth might have started while we were syncing
                 if state.auth_proc is not None and state.current_account == acc.name:
                     log.info('[%s] Auth already in progress after sync failure, skipping', acc.name)
                     continue
 
                 log.warning('[%s] Auth error — starting re-auth', acc.name)
-                await notify(bot, f'<b>[{acc.name}]</b> Session expired, starting re-authorization...')
+                await notify(bot, f'⚠️ <b>[{acc.name}]</b> Сессия истекла, запускаю переавторизацию...')
                 try:
                     auth_ok = await do_auth(acc, bot)
                 except Exception as e:
@@ -335,14 +335,14 @@ async def sync_loop(bot: Bot):
                     except Exception as e:
                         log.exception('[%s] Post-auth sync error: %s', acc.name, e)
                 else:
-                    await notify(bot, f'<b>[{acc.name}]</b> Re-authorization failed. Next attempt in {SYNC_INTERVAL//3600}h.')
+                    await notify(bot, f'❌ <b>[{acc.name}]</b> Переавторизация не удалась. Следующая попытка через {SYNC_INTERVAL//3600}ч.')
 
         log.info('All accounts synced. Next run in %ds', SYNC_INTERVAL)
         await asyncio.sleep(SYNC_INTERVAL)
 
-# ── Telegram handlers ─────────────────────────────────────────────────────────
+# ── Telegram handlers ─────────────────────────────────────────────────────────────
 def is_allowed(update: Update) -> bool:
-    """Allow: group (CHAT_ID) or private message from owner (USER_ID)."""
+    """Разрешаем: группа (CHAT_ID) или личка от владельца (USER_ID)."""
     cid = update.effective_chat.id
     uid = update.effective_user.id if update.effective_user else 0
     if cid == CHAT_ID:
@@ -356,14 +356,14 @@ async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     accounts_str = ', '.join(a.name for a in ACCOUNTS)
     if state.waiting_2fa:
-        status = f'Waiting for 2FA code for account <b>{state.current_account}</b>'
+        status = f'🔐 Ожидаю 2FA код для аккаунта <b>{state.current_account}</b>'
     elif state.auth_proc is not None:
-        status = f'Re-authorizing: <b>{state.current_account}</b>'
+        status = f'🔄 Переавторизация: <b>{state.current_account}</b>'
     else:
-        status = 'Running normally'
+        status = '✅ Работаю нормально'
     await update.message.reply_text(
-        f'{status}\n\nAccounts: <code>{accounts_str}</code>\n'
-        f'Interval: {SYNC_INTERVAL}s',
+        f'{status}\n\nАккаунты: <code>{accounts_str}</code>\n'
+        f'Интервал: {SYNC_INTERVAL}s',
         parse_mode='HTML',
     )
 
@@ -374,29 +374,29 @@ async def cmd_reauth(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not args:
         names = ' | '.join(a.name for a in ACCOUNTS)
         await update.message.reply_text(
-            f'Specify account: /reauth {names}'
+            f'Укажи аккаунт: /reauth {names}'
         )
         return
     name = args[0].lower()
     acc  = next((a for a in ACCOUNTS if a.name == name), None)
     if not acc:
-        await update.message.reply_text(f'Account <code>{name}</code> not found.', parse_mode='HTML')
+        await update.message.reply_text(f'Аккаунт <code>{name}</code> не найден.', parse_mode='HTML')
         return
     if state.auth_proc is not None:
-        await update.message.reply_text(f'Authorization already in progress ({state.current_account}).')
+        await update.message.reply_text(f'⚠️ Авторизация уже идёт ({state.current_account}).')
         return
-    await update.message.reply_text(f'Starting re-authorization for <b>{acc.name}</b>...', parse_mode='HTML')
+    await update.message.reply_text(f'🔄 Запускаю переавторизацию для <b>{acc.name}</b>...', parse_mode='HTML')
     asyncio.create_task(do_auth(acc, context.bot))
 
 async def cmd_sync(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_allowed(update):
         return
-    await update.message.reply_text('Starting unscheduled sync for all accounts...')
+    await update.message.reply_text('🔄 Запускаю внеплановую синхронизацию всех аккаунтов...')
     async def run():
         for acc in ACCOUNTS:
             ok = await sync_account(acc, context.bot)
             if not ok:
-                await notify(context.bot, f'[{acc.name}] Re-authorization needed: /reauth {acc.name}')
+                await notify(context.bot, f'⚠️ [{acc.name}] Нужна переавторизация: /reauth {acc.name}')
     asyncio.create_task(run())
 
 async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -405,10 +405,10 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
     names = ' | '.join(a.name for a in ACCOUNTS)
     await update.message.reply_text(
         '<b>iCloud Watchdog</b>\n\n'
-        '/status — current status\n'
-        f'/reauth [{names}] — re-authorize account\n'
-        '/sync — run sync now\n\n'
-        'When 2FA is requested — just send the numeric code.',
+        '/status — текущий статус\n'
+        f'/reauth [{names}] — переавторизация аккаунта\n'
+        '/sync — запустить синхронизацию сейчас\n\n'
+        'При запросе 2FA — просто отправь цифровой код.',
         parse_mode='HTML',
     )
 
@@ -416,16 +416,16 @@ async def on_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_allowed(update):
         return
     if not state.waiting_2fa:
-        await update.message.reply_text('Not waiting for a code right now. Use /help for commands.')
+        await update.message.reply_text('Сейчас не жду кода. /help для команд.')
         return
     text = update.message.text.strip()
     if not text.isdigit() or not (4 <= len(text) <= 8):
-        await update.message.reply_text('Code must be a number between 4 and 8 digits. Try again:')
+        await update.message.reply_text('⚠️ Код должен быть числом из 4–8 цифр. Попробуй ещё раз:')
         return
     state.last_code = text
     state.code_event.set()
 
-# ── Entry point ───────────────────────────────────────────────────────────────
+# ── Entry point ───────────────────────────────────────────────────────────────────
 async def main():
     state.code_event = asyncio.Event()
 
@@ -448,13 +448,13 @@ async def main():
 
     asyncio.create_task(sync_loop(app.bot))
 
-    accounts_str = '\n'.join(f'  - {a.name}: <code>{a.username}</code>' for a in ACCOUNTS)
+    accounts_str = '\n'.join(f'  • {a.name}: <code>{a.username}</code>' for a in ACCOUNTS)
     await notify(
         app.bot,
-        f'<b>iCloud Watchdog started</b>\n\n'
-        f'Accounts:\n{accounts_str}\n\n'
-        f'Sync interval: {SYNC_INTERVAL}s\n\n'
-        f'/help — commands',
+        f'🚀 <b>iCloud Watchdog запущен</b>\n\n'
+        f'Аккаунты:\n{accounts_str}\n\n'
+        f'Интервал синхронизации: {SYNC_INTERVAL}s\n\n'
+        f'/help — команды',
     )
 
     await stop_event.wait()

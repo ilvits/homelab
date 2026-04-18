@@ -1,0 +1,148 @@
+# =============================================================================
+# Paperless-ngx — document management system with OCR
+# Stack: Redis (broker) + PostgreSQL + Gotenberg + Tika + webserver
+# Port: 8020 — access via NPM at paperless.panteleyki.com
+# =============================================================================
+
+services:
+
+  paperless-broker:
+    image: docker.io/library/redis:7-alpine
+    container_name: paperless-broker
+    restart: unless-stopped
+    networks:
+      - paperless
+    volumes:
+      - /mnt/user/appdata/paperless/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  paperless-db:
+    image: docker.io/library/postgres:16-alpine
+    container_name: paperless-db
+    restart: unless-stopped
+    networks:
+      - paperless
+    volumes:
+      - /mnt/user/appdata/paperless/db:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: paperless
+      POSTGRES_USER: paperless
+      POSTGRES_PASSWORD: ${PAPERLESS_DB_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U paperless"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  paperless-gotenberg:
+    image: docker.io/gotenberg/gotenberg:8
+    container_name: paperless-gotenberg
+    restart: unless-stopped
+    networks:
+      - paperless
+    command:
+      - gotenberg
+      - --chromium-disable-javascript=true
+      - --chromium-allow-list=file:///tmp/.*
+
+  paperless-tika:
+    image: docker.io/apache/tika:latest
+    container_name: paperless-tika
+    restart: unless-stopped
+    networks:
+      - paperless
+
+  paperless-webserver:
+    image: ghcr.io/paperless-ngx/paperless-ngx:latest
+    container_name: paperless-webserver
+    restart: unless-stopped
+    networks:
+      - paperless
+    ports:
+      - "8020:8000"
+    depends_on:
+      paperless-db:
+        condition: service_healthy
+      paperless-broker:
+        condition: service_healthy
+      paperless-gotenberg:
+        condition: service_started
+      paperless-tika:
+        condition: service_started
+    volumes:
+      - /mnt/user/appdata/paperless/data:/usr/src/paperless/data
+      - /mnt/user/appdata/paperless/media:/usr/src/paperless/media
+      - /mnt/user/appdata/paperless/export:/usr/src/paperless/export
+      - /mnt/user/appdata/paperless/consume:/usr/src/paperless/consume
+    environment:
+      # --- Database ---
+      PAPERLESS_DBHOST: paperless-db
+      PAPERLESS_DBNAME: paperless
+      PAPERLESS_DBUSER: paperless
+      PAPERLESS_DBPASS: ${PAPERLESS_DB_PASSWORD}
+
+      # --- Redis ---
+      PAPERLESS_REDIS: redis://paperless-broker:6379
+
+      # --- Tika / Gotenberg (Office document support: .docx, .xlsx, .odt) ---
+      PAPERLESS_TIKA_ENABLED: 1
+      PAPERLESS_TIKA_ENDPOINT: http://paperless-tika:9998
+      PAPERLESS_TIKA_GOTENBERG_ENDPOINT: http://paperless-gotenberg:3000
+
+      # --- OCR ---
+      # Install Russian tesseract language package at container start
+      PAPERLESS_OCR_LANGUAGES: rus
+      # Primary OCR language — Russian + English fallback
+      PAPERLESS_OCR_LANGUAGE: rus+eng
+      # Skip re-OCR on already text-based PDFs (saves CPU)
+      PAPERLESS_OCR_MODE: skip
+      # Skip creating archive copy for docs that already have text layer
+      PAPERLESS_OCR_SKIP_ARCHIVE_FILE: with_text
+
+      # --- Locale ---
+      PAPERLESS_TIME_ZONE: Europe/Minsk
+      # Date parsing order: day/month/year (European standard)
+      PAPERLESS_DATE_ORDER: DMY
+
+      # --- Permissions (Unraid convention: nobody:users = 99:100) ---
+      USERMAP_UID: 99
+      USERMAP_GID: 100
+
+      # --- Security ---
+      PAPERLESS_SECRET_KEY: ${PAPERLESS_SECRET_KEY}
+      PAPERLESS_URL: https://paperless.panteleyki.com
+      PAPERLESS_CSRF_TRUSTED_ORIGINS: https://paperless.panteleyki.com,https://paperless.lan
+
+      # --- Admin user (created automatically on first start) ---
+      PAPERLESS_ADMIN_USER: ${PAPERLESS_ADMIN_USER}
+      PAPERLESS_ADMIN_PASSWORD: ${PAPERLESS_ADMIN_PASSWORD}
+      PAPERLESS_ADMIN_MAIL: ${PAPERLESS_ADMIN_MAIL}
+
+      # --- Storage layout in media/ directory ---
+      # Result example: БелГосСтрах/Страховка/2025/Полис_ОСАГО_2025
+      PAPERLESS_FILENAME_FORMAT: "{{ correspondent }}/{{ document_type }}/{{ created_year }}/{{ title }}"
+      # Omit path segments that resolve to 'none' (untagged docs)
+      PAPERLESS_FILENAME_FORMAT_REMOVE_NONE: 1
+
+      # --- Consumer ---
+      PAPERLESS_CONSUMER_POLLING: 10          # check consume dir every 10 seconds
+      PAPERLESS_CONSUMER_RECURSIVE: true      # pick up files in subdirectories
+      PAPERLESS_CONSUMER_POLLING_RETRY_COUNT: 5
+      PAPERLESS_CONSUMER_POLLING_DELAY: 5
+
+      # --- Performance tuning for Intel N100 ---
+      PAPERLESS_TASK_WORKERS: 2
+      PAPERLESS_THREADS_PER_WORKER: 1
+      PAPERLESS_WEBSERVER_WORKERS: 2
+
+      # --- Trash: keep deleted docs for 30 days before permanent removal ---
+      PAPERLESS_EMPTY_TRASH_DELAY: 30
+
+networks:
+  paperless:
+    name: paperless
+    driver: bridge
