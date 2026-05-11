@@ -1,0 +1,31 @@
+services:
+  icloudpd-bf-kate:
+    image: boredazfcuk/icloudpd:latest
+    container_name: icloudpd-bf-kate
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    environment:
+      apple_id: ${APPLE_ID}
+      user: kate
+      authentication_type: MFA
+      download_path: /home/user/iCloud
+      synchronisation_interval: ${SYNC_INTERVAL:-7200}
+      folder_structure: "{:%Y/%m/%d}"
+      skip_check: "true"
+      command_line_options: "--until-found 100"
+      notification_type: ${NOTIFICATION_TYPE:-none}
+      telegram_token: ${TELEGRAM_TOKEN:-}
+      telegram_chat_id: ${TELEGRAM_CHAT_ID:-}
+      notification_days: 7
+      telegram_polling: "true"
+      silent_file_notifications: "true"
+      photo_size: original
+      live_photo_size: original
+      file_match_policy: name-size-dedup-with-suffix
+      TZ: Europe/Minsk
+      user_id: 99
+      group_id: 100
+    volumes:
+      - /mnt/user/appdata/icloudpd-bf-kate:/config
+      - /mnt/user/photoLibraries/kate/icloud:/home/user/iCloud
