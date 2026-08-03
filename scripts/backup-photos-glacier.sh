@@ -16,6 +16,9 @@ LOCK_FILE="/tmp/glacier-backup.lock"
 PHOTO_ROOT_1="${PHOTO_ROOT}/${ACCOUNT1}"
 PHOTO_ROOT_2="${PHOTO_ROOT}/${ACCOUNT2}"
 
+# rclone config lives on the array: /root is tmpfs and is wiped on reboot
+export RCLONE_CONFIG="/mnt/user/appdata/rclone-glacier/rclone.conf"
+
 log()    { echo "$(date '+%Y-%m-%d %H:%M:%S') $1" | tee -a "$LOG"; }
 notify() {
   local title="$1"
@@ -110,6 +113,19 @@ already_done() {
 
 log "=== Backup cycle started (PID $$) ==="
 log "TMP: $TMP ($(df -h "$TMP" | tail -1 | awk '{print $4}') free)"
+
+# --- Preflight: fail fast before packing multi-GB archives ---
+if ! rclone listremotes 2>/dev/null | grep -q "^${RCLONE_REMOTE}:"; then
+  log "FATAL: rclone remote ${RCLONE_REMOTE} unavailable (config: $RCLONE_CONFIG)"
+  notify "Glacier Backup" "Aborted: rclone remote ${RCLONE_REMOTE} not found"
+  exit 1
+fi
+if [ ! -d "${LEDGER_REPO}/glacier" ]; then
+  log "FATAL: ledger repo not found at ${LEDGER_REPO}"
+  notify "Glacier Backup" "Aborted: ledger repo missing at ${LEDGER_REPO}"
+  exit 1
+fi
+log "Preflight OK: remote ${RCLONE_REMOTE}, ledger repo ${LEDGER_REPO}"
 
 # --- 1. account1/icloud — YYYY/MM/ layout ---
 while read -r monthdir; do

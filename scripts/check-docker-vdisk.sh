@@ -4,7 +4,7 @@
 # Alerts via apprise-api if usage exceeds threshold
 
 APPRISE_URL="http://localhost:8001/notify/home"
-THRESHOLD=10
+THRESHOLD=85
 
 USAGE=$(df /var/lib/docker | awk 'NR==2 {print $5}' | tr -d '%')
 AVAIL=$(df -h /var/lib/docker | awk 'NR==2 {print $4}')
