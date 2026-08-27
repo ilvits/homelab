@@ -1,4 +1,0 @@
-        r = requests.get(
-            f"{LB_API}/1/similar-artists/{mbid}/",
-            timeout=20,
-        )
