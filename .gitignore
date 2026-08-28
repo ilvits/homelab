@@ -27,3 +27,13 @@ icloudpd/
 # Seafile
 .seafile-data
 scripts/.env
+
+# scratch files
+_*.txt
+*.bak
+
+# Kept in homelab-private: security controls and mail backup internals
+scripts/ssh-forced-vps.sh
+scripts/backup-stalwart.sh
+scripts/stalwart-rotate.sh
+scripts/RESTORE-stalwart.md
