@@ -32,8 +32,10 @@ scripts/.env
 _*.txt
 *.bak
 
-# Kept in homelab-private: security controls and mail backup internals
-scripts/ssh-forced-vps.sh
-scripts/backup-stalwart.sh
-scripts/stalwart-rotate.sh
-scripts/RESTORE-stalwart.md
+# VPS and mail-stack scripts live in homelab-private: they carry the public IP,
+# mail domain, backup paths and the exact boundary of what the VPS key may do
+# on Unraid.
+scripts/vps/
+scripts/stalwart-*.sh
+scripts/ssh-forced-*.sh
+docs/RESTORE-*.md
