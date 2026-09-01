@@ -39,3 +39,5 @@ scripts/vps/
 scripts/stalwart-*.sh
 scripts/ssh-forced-*.sh
 docs/RESTORE-*.md
+scripts/*stalwart*.sh
+scripts/RESTORE-*.md
