@@ -99,7 +99,7 @@ services:
       # Primary OCR language — Russian + English fallback
       PAPERLESS_OCR_LANGUAGE: rus+eng
       # Skip re-OCR on already text-based PDFs (saves CPU)
-      PAPERLESS_OCR_MODE: auto
+      PAPERLESS_OCR_MODE: redo
       # Skip creating archive copy for docs that already have text layer
 #      PAPERLESS_OCR_SKIP_ARCHIVE_FILE: with_text
       PAPERLESS_ARCHIVE_FILE_GENERATION: auto

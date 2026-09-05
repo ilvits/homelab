@@ -4,7 +4,7 @@ set +H
 # Load all configuration from .env
 source /mnt/user/appdata/compose/scripts/.env
 
-LOG="/var/log/glacier-backup.log"
+LOG="/mnt/user/appdata/archive-ledger/glacier-backup.log"
 TMP="/mnt/user/appdata/archive-ledger/tmp"
 LEDGER="/mnt/user/appdata/archive-ledger/ledger.csv"
 APPRISE_URL="http://localhost:8001/notify/backup"

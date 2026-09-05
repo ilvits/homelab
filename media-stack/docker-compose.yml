@@ -35,15 +35,16 @@ services:
       - media
     ports:
       - "9696:9696"   # Prowlarr
+      - "8192:8192"   # Byparr
       - "8989:8989"   # Sonarr
       - "7878:7878"   # Radarr
       - "8191:8191"   # FlareSolverr
       - "6767:6767"   # Bazarr
       - "5055:5055"   # Jellyseerr
       - "8686:8686"   # Lidarr
-      - "8080:8080"   # qbittorrent WebUI
-      - "6881:6881"   # torrent port
-      - "6881:6881/udp"
+      # - "8080:8080"   # qbittorrent WebUI
+      # - "6881:6881"   # torrent port
+      # - "6881:6881/udp"
     volumes:
       - ${APPDATA}/gluetun:/gluetun
     environment:
@@ -104,13 +105,13 @@ services:
     image: lscr.io/linuxserver/qbittorrent:latest
     container_name: qbittorrent
     restart: unless-stopped
-    network_mode: "service:gluetun"
-#    networks:
-#      - media
-#    ports:
-#      - "8080:8080"
-#      - "6881:6881/tcp"
-#      - "6881:6881/udp"
+    # network_mode: "service:gluetun"
+    networks:
+     - media
+    ports:
+     - "8080:8080"
+     - "6881:6881/tcp"
+     - "6881:6881/udp"
     volumes:
       - ${APPDATA}/qbittorrent:/config
       - ${MEDIAFILES}:/mediafiles
@@ -209,6 +210,26 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # Byparr — FlareSolverr-compatible solver, handles CF managed challenges
+  # ---------------------------------------------------------------------------
+  # Shares Gluetun's namespace, so Prowlarr reaches it at localhost:8192.
+  # Port is not published: internal use only.
+  # ---------------------------------------------------------------------------
+  byparr:
+    image: ghcr.io/thephaseless/byparr:latest
+    container_name: byparr
+    restart: unless-stopped
+    network_mode: "service:gluetun"
+    shm_size: 2gb
+    environment:
+      - TZ=${TZ}
+      - PORT=8192
+      - LOG_LEVEL=info
+    depends_on:
+      gluetun:
+        condition: service_healthy
 
   # ---------------------------------------------------------------------------
   # FlareSolverr — Cloudflare bypass for Prowlarr (via VPN)
