@@ -3,6 +3,10 @@ services:
   seadoc:
     image: ${SEADOC_IMAGE:-seafileltd/sdoc-server:2.0-latest}
     container_name: seadoc
+    # Without a restart policy the docker daemon never brings this container
+    # back after a host reboot: depends_on is honored by "docker compose up"
+    # only, and the daemon replays restart policies instead.
+    restart: unless-stopped
     volumes:
       - ${SEADOC_VOLUME:-/opt/seadoc-data/}:/shared
     # ports:

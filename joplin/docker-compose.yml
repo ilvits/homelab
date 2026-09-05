@@ -2,20 +2,33 @@ services:
   db:
     image: postgres:16
     container_name: joplin_db
-    restart: unless-stopped
+    # "always" rather than "unless-stopped". A stop issued through the Unraid
+    # Compose Manager plugin at array shutdown counts as a manual stop and sets
+    # HasBeenManuallyStopped in the container config. That flag survives a host
+    # reboot, and "unless-stopped" makes the daemon skip the container on the
+    # next start - which is exactly why this stack never came back on its own.
+    restart: always
     environment:
       - POSTGRES_DB=joplin
       - POSTGRES_USER=joplin
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - /mnt/user/appdata/joplin-server/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U joplin -d joplin"]
+      interval: 10s
+      start_period: 30s
+      timeout: 5s
+      retries: 10
 
   app:
     image: joplin/server:latest
     container_name: joplin_server
-    restart: unless-stopped
+    # See the note on the db service above.
+    restart: always
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     env_file:
       - .env
     environment:
@@ -28,7 +41,17 @@ services:
       - POSTGRES_USER=joplin
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - SIGNUP_ENABLED=1
+      # Skip the NTP time drift check. The container shares the Unraid host
+      # clock, which the OS keeps NTP-synced, so the check is redundant here.
+      # On boot it runs before the PPPoE link is up, times out on UDP 123, and
+      # pm2 then crash-loops the app process for several minutes while the
+      # container itself still reports "running".
+      # Upstream: laurent22/joplin issues 5973 and 6141.
+      - MAX_TIME_DRIFT=0
       # --- Mailer / SMTP ---
+      # NOTE: mail.fairybrains.com is the retired Mailu host. Invitations and
+      # password resets fail silently until this is repointed at
+      # mail.ourfolks.uk with a matching mailbox and app password.
       - MAILER_ENABLED=1
       - MAILER_HOST=mail.fairybrains.com
       - MAILER_PORT=465
@@ -41,3 +64,14 @@ services:
       - "22300:22300"
     volumes:
       - /mnt/user/appdata/joplin-server/joplin:/home/joplin/.joplin
+    healthcheck:
+      # node is guaranteed present in this image; curl and wget are not.
+      # The Host header must match APP_BASE_URL - Joplin answers 404
+      # "Invalid origin" to anything else, so a plain localhost request would
+      # report a healthy service as down. HEAD is refused as well
+      # (400 "Not allowed"), so this has to be a GET.
+      test: ["CMD", "node", "-e", "const u=new URL(process.env.APP_BASE_URL);require('http').get({host:'127.0.0.1',port:process.env.APP_PORT||22300,path:'/login',headers:{Host:u.host}},r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 30s
+      start_period: 60s
+      timeout: 5s
+      retries: 3
