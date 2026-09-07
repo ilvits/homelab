@@ -25,7 +25,7 @@ SERVICES=(
   "radarr|7878|/|200|"
   "lidarr|8686|/|200|"
   "prowlarr|9696|/|200|"
-  "jellyseerr|5055|/|200|"
+  "jellyseerr|5055|/api/v1/status|200|"
   "bazarr|6767|/|200|"
   "qbittorrent|8080|/|200|"
   "authentik|9000|/|200|"
@@ -40,6 +40,15 @@ SERVICES=(
   "sftpgo|2221|/|200|"
   "fairybrains|3005|/|200|"
   "duplicati|8200|/|200|"
+  "immich|8077|/|200|"
+  "paperless|8020|/|200|"
+  "skua|3200|/|200|"
+  "mealie|3015|/|200|"
+  "uptime-kuma|3001|/|200|"
+  "unmanic|8888|/|200|"
+  "dockge|5001|/|200|"
+  "scanner|8085|/|200|"
+  "cups|631|/|200|"
 )
 
 DRY_RUN=0

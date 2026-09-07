@@ -1,0 +1,21 @@
+services:
+  scanservjs:
+    image: ghcr.io/sbs20/scanservjs:v3.3.0
+    container_name: scanservjs
+    restart: unless-stopped
+    ports:
+      - "8085:8080"          # 8080 is taken by qbittorrent
+    environment:
+      # Canon CanoScan LiDE 400, USB. Device id is VID+PID+serial and is stable.
+      DEVICES: "pixma:04A91912_5184FE"
+      SCANIMAGE_LIST_IGNORE: "true"        # skip `scanimage -L`; avoids the mDNS/WSD probe
+      OCR_LANG: "rus+eng"
+      TZ: "Europe/Minsk"
+    volumes:
+      - /mnt/user/appdata/scanservjs/config:/etc/scanservjs
+      - /mnt/user/appdata/scanservjs/output:/var/lib/scanservjs/output
+      - /mnt/user/appdata/paperless/consume:/mnt/paperless-consume
+      - /mnt/user/photoLibraries/ilvits/scans:/mnt/immich-scans
+      - /dev/bus/usb:/dev/bus/usb
+    device_cgroup_rules:
+      - 'c 189:* rmw'                      # USB char devices; narrower than privileged
