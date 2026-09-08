@@ -2,7 +2,7 @@
 # Media Stack — Jellyfin + *arr suite + VPN (Gluetun)
 # =============================================================================
 # Behind Gluetun (WireGuard): Prowlarr, Sonarr, Radarr, FlareSolverr,
-#                              Bazarr, Jellyseerr, Lidarr
+#                              Bazarr, Seerr, Lidarr
 # Direct network (media):     Jellyfin, qBittorrent
 #
 # Services behind VPN share Gluetun's network namespace and reach each other
@@ -38,9 +38,9 @@ services:
       - "8192:8192"   # Byparr
       - "8989:8989"   # Sonarr
       - "7878:7878"   # Radarr
-      - "8191:8191"   # FlareSolverr
+      # - "8191:8191"   # FlareSolverr
       - "6767:6767"   # Bazarr
-      - "5055:5055"   # Jellyseerr
+      - "5055:5055"   # Seerr
       - "8686:8686"   # Lidarr
       # - "8080:8080"   # qbittorrent WebUI
       # - "6881:6881"   # torrent port
@@ -234,25 +234,25 @@ services:
   # ---------------------------------------------------------------------------
   # FlareSolverr — Cloudflare bypass for Prowlarr (via VPN)
   # ---------------------------------------------------------------------------
-  flaresolverr:
-    image: ghcr.io/flaresolverr/flaresolverr:latest
-    container_name: flaresolverr
-    restart: unless-stopped
-    network_mode: "service:gluetun"
-    volumes:
-      - ${APPDATA}/flaresolverr:/config
-    environment:
-      - TZ=${TZ}
-      - LOG_LEVEL=info
-    depends_on:
-      gluetun:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8191/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+  # flaresolverr:
+  #   image: ghcr.io/flaresolverr/flaresolverr:latest
+  #   container_name: flaresolverr
+  #   restart: unless-stopped
+  #   network_mode: "service:gluetun"
+  #   volumes:
+  #     - ${APPDATA}/flaresolverr:/config
+  #   environment:
+  #     - TZ=${TZ}
+  #     - LOG_LEVEL=info
+  #   depends_on:
+  #     gluetun:
+  #       condition: service_healthy
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:8191/health"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 30s
 
   # ---------------------------------------------------------------------------
   # Bazarr — subtitle management (via VPN)
@@ -284,27 +284,44 @@ services:
       start_period: 30s
 
   # ---------------------------------------------------------------------------
-  # Jellyseerr — content request UI (via VPN)
+  # Seerr (formerly Jellyseerr) — content request UI (via VPN)
+  # ---------------------------------------------------------------------------
+  # The Jellyseerr and Overseerr projects merged into Seerr. The old image
+  # fallenbagel/jellyseerr is frozen at 2.7.3 and its :latest tag no longer
+  # moves, which is why no update was ever reported for it.
+  #
+  # Pinned by tag on purpose: the first start on the Seerr codebase runs a
+  # one-way data migration, so an unattended pull must not decide when that
+  # happens. Container name is kept as jellyseerr so the homepage widget,
+  # check-services.sh and NPM entries do not have to change.
+  #
+  # init: true    — the image no longer ships an init process
+  # user 99:100   — the image defaults to node (UID 1000); Unraid nobody:users
+  #                 keeps appdata ownership consistent with every other stack
   # ---------------------------------------------------------------------------
   jellyseerr:
-    image: fallenbagel/jellyseerr:latest
+    image: ghcr.io/seerr-team/seerr:v3.4.1
     container_name: jellyseerr
     restart: unless-stopped
+    init: true
+    user: "99:100"
     network_mode: "service:gluetun"
     volumes:
       - ${APPDATA}/jellyseerr:/app/config
     environment:
       - TZ=${TZ}
+      - LOG_LEVEL=info
     depends_on:
       gluetun:
         condition: service_healthy
       jellyfin:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5055/health >/dev/null 2>&1 || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5055/api/v1/settings/public >/dev/null 2>&1 || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 20s
 
   # ---------------------------------------------------------------------------
   # Lidarr — music automation (via VPN)
